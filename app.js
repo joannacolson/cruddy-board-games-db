@@ -2,7 +2,7 @@
 // STOP: what are these modules? Use online documentation to read up on them.
 var express = require('express');
 var path = require('path');
-var fs = require('fs');
+// var fs = require('fs');
 var ejsLayouts = require("express-ejs-layouts");
 var bodyParser = require('body-parser');
 var db = require("./models");
@@ -43,7 +43,7 @@ app.get('/games/new', function(req, res) {
 
 // create a new game (using form data from /games/new)
 app.post('/games', function(req, res) {
-    console.log(req.body);
+    // console.log(req.body);
     var newGame = req.body;
     db.game.create(newGame).then(function() {
         res.redirect('/games');
@@ -104,13 +104,16 @@ app.put('/game/:name', function(req, res) {
     var nameOfTheGame = req.params.name;
     db.game.update({
         name: theNewGameData.name,
-        description: theNewGameData.description
+        description: theNewGameData.description,
+        numberOfPlayers: theNewGameData.numberOfPlayers
     }, {
         where: {
             name: nameOfTheGame
         }
     }).then(function() {
         res.send(req.body);
+    }).catch(function(error) {
+        res.status(404).send(error);
     });
     // var games = getGames();
     // var game = getGame(games, nameOfTheGame);
@@ -133,6 +136,8 @@ app.delete('/game/:name', function(req, res) {
     }).then(function() {
         // I changed the response because the destroy function does not return game data
         res.send(req.body);
+    }).catch(function(error) {
+        res.status(404).send(error);
     });
     // var games = getGames();
     // var game = getGame(games, nameOfTheGame);
