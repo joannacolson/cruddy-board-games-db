@@ -5,6 +5,7 @@ var path = require('path');
 var fs = require('fs');
 var ejsLayouts = require("express-ejs-layouts");
 var bodyParser = require('body-parser');
+var db = require("./models");
 
 var app = express();
 
@@ -19,102 +20,157 @@ app.set('view engine', 'ejs');
 
 // your routes here
 
+// redirect to the /games route
 app.get('/', function(req, res) {
     res.redirect('/games');
 });
 
+// display a list of all games
 app.get('/games', function(req, res) {
-    var games = getGames();
-
-    res.render('games-index', { games: games });
+    db.game.findAll().then(function(games) {
+        res.render('games-index', { games: games });
+    }).catch(function(error) {
+        res.status(404).send(error);
+    });
+    // var games = getGames();
+    // res.render('games-index', { games: games });
 });
 
+// return an HTML form for creating a new game
 app.get('/games/new', function(req, res) {
     res.render('games-new');
 });
 
+// create a new game (using form data from /games/new)
 app.post('/games', function(req, res) {
     console.log(req.body);
     var newGame = req.body;
+    db.game.create(newGame).then(function() {
+        res.redirect('/games');
+    }).catch(function(error) {
+        res.status(404).send(error);
+    });
 
-    var games = getGames();
-    games.push(newGame);
-    saveGames(games);
+    // var games = getGames();
+    // games.push(newGame);
+    // saveGames(games);
 
-    res.redirect('/games');
+    // res.redirect('/games');
 });
 
 // show page
+// display a specific game
 app.get('/game/:name', function(req, res) {
     var nameOfTheGame = req.params.name;
-    var games = getGames();
-    var game = getGame(games, nameOfTheGame);
+    // console.log(nameOfTheGame);
+    db.game.find({
+        where: { name: nameOfTheGame }
+    }).then(function(game) {
+        // console.log(game);
+        res.render('games-show', { game: game });
+    }).catch(function(error) {
+        res.status(404).send(error);
+    });
 
-    res.render('games-show', game);
+    // var games = getGames();
+    // var game = getGame(games, nameOfTheGame);
+
+    // res.render('games-show', game);
 });
 
+// return an HTML form for editing a game
 app.get('/game/:name/edit', function(req, res) {
     var nameOfTheGame = req.params.name;
-    var games = getGames();
-    var game = getGame(games, nameOfTheGame);
+    db.game.find({
+        where: { name: nameOfTheGame }
+    }).then(function(game) {
+        // console.log(game);
+        res.render('games-edit', { game: game });
+    }).catch(function(error) {
+        res.status(404).send(error);
+    });
 
-    res.render('games-edit', game);
+
+    // var games = getGames();
+    // var game = getGame(games, nameOfTheGame);
+
+    // res.render('games-edit', game);
 });
 
+// update a specific game (using form data from /games/:name/edit)
 app.put('/game/:name', function(req, res) {
     var theNewGameData = req.body;
 
     var nameOfTheGame = req.params.name;
-    var games = getGames();
-    var game = getGame(games, nameOfTheGame);
+    db.game.update({
+        name: theNewGameData.name,
+        description: theNewGameData.description
+    }, {
+        where: {
+            name: nameOfTheGame
+        }
+    }).then(function() {
+        res.send(req.body);
+    });
+    // var games = getGames();
+    // var game = getGame(games, nameOfTheGame);
 
-    game.name = theNewGameData.name;
-    game.description = theNewGameData.description;
+    // game.name = theNewGameData.name;
+    // game.description = theNewGameData.description;
 
-    saveGames(games);
+    // saveGames(games);
 
-    res.send(req.body);
+    // res.send(req.body);
 });
 
+// deletes a specific game
 app.delete('/game/:name', function(req, res) {
     var nameOfTheGame = req.params.name;
-    var games = getGames();
-    var game = getGame(games, nameOfTheGame);
-    var indexOfGameToDelete = games.indexOf(game);
+    db.game.destroy({
+        where: {
+            name: nameOfTheGame
+        }
+    }).then(function() {
+        // I changed the response because the destroy function does not return game data
+        res.send(req.body);
+    });
+    // var games = getGames();
+    // var game = getGame(games, nameOfTheGame);
+    // var indexOfGameToDelete = games.indexOf(game);
 
-    games.splice(indexOfGameToDelete, 1);
+    // games.splice(indexOfGameToDelete, 1);
 
-    saveGames(games);
+    // saveGames(games);
 
-    res.send(game);
+    // res.send(game);
 });
 
 // helper functions
 
-function getGame(games, nameOfTheGame) {
-    var game = null;
+// function getGame(games, nameOfTheGame) {
+//     var game = null;
 
-    for (var i = 0; i < games.length; i++) {
-        if (games[i].name.toLowerCase() == nameOfTheGame.toLowerCase()) {
-            game = games[i];
-            break;
-        }
-    }
+//     for (var i = 0; i < games.length; i++) {
+//         if (games[i].name.toLowerCase() == nameOfTheGame.toLowerCase()) {
+//             game = games[i];
+//             break;
+//         }
+//     }
 
-    return game;
-}
+//     return game;
+// }
 
 // Read list of games from file.
-function getGames() {
-    var fileContents = fs.readFileSync('./games.json'); // :'(
-    var games = JSON.parse(fileContents);
-    return games;
-}
+// function getGames() {
+//     var fileContents = fs.readFileSync('./games.json'); // :'(
+//     var games = JSON.parse(fileContents);
+//     return games;
+// }
 
 // Write list of games to file.
-function saveGames(games) {
-    fs.writeFileSync('./games.json', JSON.stringify(games));
-}
+// function saveGames(games) {
+//     fs.writeFileSync('./games.json', JSON.stringify(games));
+// }
 
 // start the server
 
