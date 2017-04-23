@@ -47,6 +47,8 @@ app.post('/games', function(req, res) {
     var newGame = req.body;
     db.game.create(newGame).then(function() {
         res.redirect('/games');
+        // use this instead:
+        // res.status(303).redirect('/game/' + newGame.name);
     }).catch(function(error) {
         res.status(404).send(error);
     });
